@@ -89,16 +89,12 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
-
-  ASSERT (intr_get_level () == INTR_ON);
-  thread_block_ticks(ticks);
-  while (thread_current()->status == THREAD_BLOCKED)
-  	thread_block_ticks(thread_current()->block_for_ticks); 
-  
-  
-		//while (timer_elapsed (start) < ticks) 
-    //thread_yield ();
+	if (ticks<0)
+		return;
+		
+		int64_t start = timer_ticks ();
+		ASSERT (intr_get_level () == INTR_ON);
+		thread_block_ticks(ticks);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be

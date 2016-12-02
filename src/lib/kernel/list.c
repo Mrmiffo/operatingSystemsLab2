@@ -177,6 +177,21 @@ list_insert (struct list_elem *before, struct list_elem *elem)
   before->prev = elem;
 }
 
+/* Inserts ELEM just after AFTER, which may be either an 
+	 interior element or a head. The latter case is equivalent 
+	 to list_push_front(). */
+void 
+list_insert_after (struct list_elem *after, struct list_elem *elem)
+{
+	ASSERT (is_interior (before) || is_head (before));
+  ASSERT (elem != NULL);
+
+	after->next->prev = elem;
+	elem->next = after->next;
+	after->next = elem;
+	elem->prev = after;	
+}
+
 /* Removes elements FIRST though LAST (exclusive) from their
    current list, then inserts them just before BEFORE, which may
    be either an interior element or a tail. */

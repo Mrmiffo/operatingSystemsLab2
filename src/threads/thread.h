@@ -85,7 +85,6 @@ struct thread
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */
     enum thread_status status;          /* Thread state. */
-    int sleeping_thread;						/* Is 1 if the thread is a sleeping thread */
     int64_t block_for_ticks;						/* Number of ticks to block thread */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */

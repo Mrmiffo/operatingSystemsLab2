@@ -1,17 +1,14 @@
 			+--------------------+
 			|    EDA092/DIT400   |
 			| LAB ASSIGNMENT 2:  |
-			| 	THREADS      |
+			| 	THREADS    		   |
 			|   DESIGN DOCUMENT  |
 			+--------------------+
 				   
----- GROUP XX ----
+---- GROUP A10 ----
 
->> Fill in the group number, names and email addresses of your group members.
-
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Anton Strandman <anton.strandman@gmail.com>
+Patrick Andersson <patrican@student.chalmers.se>
 
 ---- PRELIMINARIES ----
 
@@ -27,30 +24,72 @@ FirstName LastName <email@domain.example>
 
 ---- DATA STRUCTURES ----
 
->> A1: Copy here the declaration of each new or changed `struct' or
->> `struct' member, global or static variable, `typedef', or
->> enumeration.  Identify the purpose of each in 25 words or less.
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    int64_t block_for_ticks;						/* Number of ticks to block thread */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    struct list_elem allelem;           /* List element for all threads list. */
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+  
+block_for_ticks is defaulted to -1 in create_thread, indicating that it is not blocked.
 
 ---- ALGORITHMS ----
 
->> A2: Briefly describe what happens in a call to timer_sleep(),
->> including the effects of the timer interrupt handler.
+In timer_sleep() the new method thread_block_ticks(ticks) is called unless 
+ticks < 0 upon which the method return immediately. thread_block_ticks will 
+turn off interrupts momentarily in order to set the value block_for_ticks in 
+the thread and call the original thread_block method.
 
->> A3: What steps are taken to minimize the amount of time spent in
->> the timer interrupt handler?
+The timer interrupt handler calls thread_tick in which all threads are updated with the 
+update_blocked_thread method. The update_blocked_thread method will check if the thread is 
+blocked (status) and sleeping (block_for ticks > -1). If so it will also decrement the 
+block_for_ticks value and unblock if necessary (block_for_ticks <= 0, <=0 is used instead 
+of == due to the edgecase when sleep is called with ticks = 0). 
+
+In order to minimize the amount of time spent block_for_ticks is used to identify both if 
+the thread is sleeping and for how long it should sleep. This way the processor will not have 
+to fetch two different variables from memory. Also we (believe that we) minimize the number of 
+operations done in the interrupt handler by having status == THREAD_BLOCKED as the first operation 
+for each checked thread. This could be improved by keeping all the blocked threads in a seperate 
+structure maintained outside the interrupthandler, but the assignment said to use the 
+thread_foreach method.
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+We turn of interrupts in thread_block_ticks (required by original thread_block method which is 
+called), upon which only one thread can 'run at the same time'. 
+
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
+See above. External interrupts will not happen during the critical thread_block_ticks method call.
+
 ---- RATIONALE ----
 
->> A6: Why did you choose this design?  In what ways is it superior to
->> another design you considered?
+We choose to disable interrupts in trhead instead of calling semaphores in timer (or similar) as 
+it is the design used timer (and the assignment clearly stated that added code should conform 
+with the existing design). Also using a synchronize method such as a semaphore would not work as the
+semaphore would not be released by the running thread until it finished sleeping, as semaphores are 
+not automatically released when a thread is blocked.
 
 			    BATCH SCHEDULING
 			    ================

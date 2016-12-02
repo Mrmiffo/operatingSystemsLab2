@@ -145,19 +145,12 @@ thread_tick (void)
 
 /*Called by thread_tick to update and unblock blocked threads. */
 void 
-update_blocked_thread (struct thread *t, void *aux)
+update_blocked_thread (struct thread *t, void *aux UNUSED)
 {
 
-	if (t->status == THREAD_BLOCKED && t->sleeping_thread)
+	if (t->status == THREAD_BLOCKED && t->block_for_ticks > -1 && --t->block_for_ticks <= 0)
 	{
-		t->block_for_ticks -= TIMER_FREQ;
-		ASSERT(t->status == THREAD_BLOCKED);
-		if (t->block_for_ticks <= 0)
-		{
-			t->sleeping_thread = 0;
-			thread_unblock (t);		
-		}
-		
+			thread_unblock (t);
 	}
 }
 
@@ -205,7 +198,7 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
-  t->sleeping_thread = 0;
+  t->block_for_ticks = -1;
 
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack' 
@@ -259,7 +252,6 @@ thread_block_ticks (int64_t ticks)
   
   old_level = intr_disable ();
 	thread_current ()->block_for_ticks = ticks;
-	thread_current ()->sleeping_thread = 1;
 	thread_block();
 	intr_set_level (old_level);
 }
