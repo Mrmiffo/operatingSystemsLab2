@@ -148,7 +148,7 @@ void
 update_blocked_thread (struct thread *t, void *aux UNUSED)
 {
 
-	if (t->status == THREAD_BLOCKED && t->block_for_ticks-- == 0)
+	if (t->status == THREAD_BLOCKED && t->block_for_ticks > -1 && --t->block_for_ticks <= 0)
 	{
 			thread_unblock (t);
 	}
@@ -187,7 +187,7 @@ thread_create (const char *name, int priority,
   struct switch_threads_frame *sf;
   tid_t tid;
   enum intr_level old_level;
-
+	
   ASSERT (function != NULL);
 
   /* Allocate thread. */
@@ -196,9 +196,10 @@ thread_create (const char *name, int priority,
     return TID_ERROR;
 
   /* Initialize thread. */
+  t->block_for_ticks = -1;
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
-  t->block_for_ticks = -1;
+
 
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack' 

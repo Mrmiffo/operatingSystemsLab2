@@ -183,7 +183,7 @@ list_insert (struct list_elem *before, struct list_elem *elem)
 void 
 list_insert_after (struct list_elem *after, struct list_elem *elem)
 {
-	ASSERT (is_interior (before) || is_head (before));
+	ASSERT (is_interior (after) || is_head (after));
   ASSERT (elem != NULL);
 
 	after->next->prev = elem;

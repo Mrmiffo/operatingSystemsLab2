@@ -6,8 +6,10 @@
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "devices/timer.h"
 #include "lib/random.h" //generate random numbers
 #include "lib/kernel/list.h"
+#include "threads/interrupt.h"
 
 #define BUS_CAPACITY 3
 #define SENDER 0
@@ -19,7 +21,7 @@
  *	initialize task with direction and priority
  *	call o
  * */
-typedef struct {
+typedef struct task_s {
 	int direction;
 	int priority;
 } task_t;
@@ -30,12 +32,12 @@ typedef struct {
  * */
 typedef struct {
   struct list_elem e;
-  struct task_t task;
+  struct task_s task;
 } task_list_node;
 
 
 struct list queue;
-list_elem *endOfPrio;
+struct list_elem *endOfPrio;
 int curBusDirection = -1;
 struct semaphore busSlots;
 struct lock queueLock;
@@ -58,13 +60,11 @@ void oneTask(task_t task);/*Task requires to use the bus and executes methods be
 
 /* initializes semaphores */ 
 void init_bus(void){ 
- 
     random_init((unsigned int)123456789); 
-    init_list(&queue);
+    list_init(&queue);
     endOfPrio = list_head(&queue);
     sema_init (&busSlots, 3);
     lock_init (&queueLock);
-    msg("NOT IMPLEMENTED");
     /* FIXME implement */
 
 }
@@ -83,29 +83,30 @@ void init_bus(void){
 void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
         unsigned int num_priority_send, unsigned int num_priority_receive)
 {
-		for (unsigned int i = 0, i< num_priority_send, i++)
+
+		unsigned int i;
+		for (i = 0; i< num_priority_send; i++)
 		{
 			thread_create ("Prioritized send", 0,
                senderPriorityTask, NULL); 
 		}
-		
-		for (unsigned int i = 0, i< num_priority_receive, i++)
+		for (i = 0; i< num_priority_receive; i++)
 		{
 			thread_create ("Prioritized receive", 0,
-               receiverPrioirtyTask, NULL); 
+               receiverPriorityTask, NULL); 
 		}
-		
-				for (unsigned int i = 0, i< num_tasks_send, i++)
+		for (i = 0; i< num_tasks_send; i++)
 		{
 			thread_create ("Unprioritized send", 0,
                senderTask, NULL); 
 		}
-		
-		for (unsigned int i = 0, i< num_task_receive, i++)
+		for (i = 0; i< num_task_receive; i++)
 		{
 			thread_create ("Unprioritized receive", 0,
                receiverTask, NULL); 
 		}
+		printf("Threads created");
+		
 }
 
 /* Normal task,  sending data to the accelerator */
@@ -143,53 +144,29 @@ void oneTask(task_t task) {
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
 {
-	lock_aquire(&queueLock);
-	if (list_size(&queue) || 
-				(curBusDirection != task.direction || curBusDirection != -1) || 
-				!sema_try_aquire(&busSlots))
-	{
-		if (task.priority){
-			struct task_list_node node;
-			node.task = task;
-			list_insert_after(&endOfPrio, &node.e);
-			endOfPrio = &node.e;
-		}
-		else
-		{
-			struct task_list_node node;
-			node.task = task;
-			list_push_back(&queue,&node.e);
-		}
-		enum intr_level = intr_disable();
-		lock_release(&queueLock);
-		thread_block();
-		intr_set_level(intr_level);
-	}
-
-    msg("NOT IMPLEMENTED");
-    /* FIXME implement */
+	
 }
 
 /* task processes data on the bus send/receive */
 void transferData(task_t task) 
 {
-		printf("DEBUGMSG ENTER: %s\n", thread_current()->name);
-		printf("DEBUGMSG DIRECTION: %d\n", task.direction);
-		printf("DEBUGMSG PRIORITY: %d\n", task.priority);
+		//printf("DEBUGMSG ENTER: %s\n", thread_current()->name);
+		//printf("DEBUGMSG DIRECTION: %d\n", task.direction);
+		//printf("DEBUGMSG PRIORITY: %d\n", task.priority);
 		long random = random_ulong();
-		printf("DEBUGMSG SLEEPING: %ld\n", random);
+		//printf("DEBUGMSG SLEEPING: %ld\n", random);
 		timer_sleep(random);
 }
 
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {
-		//Claim lock
+
 		//release slot
 		//check if last
 			//set direction
 		//release lock
 		//wake waiter
-    msg("NOT IMPLEMENTED");
+    //msg("NOT IMPLEMENTED");
     /* FIXME implement */
 }
