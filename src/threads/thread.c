@@ -147,7 +147,6 @@ thread_tick (void)
 void 
 update_blocked_thread (struct thread *t, void *aux UNUSED)
 {
-
 	if (t->status == THREAD_BLOCKED && t->block_for_ticks > -1 && --t->block_for_ticks <= 0)
 	{
 			thread_unblock (t);

@@ -171,8 +171,10 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+	enum intr_level org = intr_disable();
   ticks++;
   thread_tick ();
+  intr_set_level(org);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
