@@ -62,9 +62,6 @@ blocked (status) and sleeping (block_for ticks > -1). If so it will also decreme
 block_for_ticks value and unblock if necessary (block_for_ticks <= 0, <=0 is used instead 
 of == due to the edgecase when sleep is called with ticks = 0). 
 
->> A3: What steps are taken to minimize the amount of time spent in
->> the timer interrupt handler?
-
 In order to minimize the amount of time spent block_for_ticks is used to identify both if 
 the thread is sleeping and for how long it should sleep. This way the processor will not have 
 to fetch two different variables from memory. Also we (believe that we) minimize the number of 
@@ -78,13 +75,21 @@ thread_foreach method.
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+We turn of interrupts in thread_block_ticks (required by original thread_block method which is 
+called), upon which only one thread can 'run at the same time'. 
+
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
+See above. External interrupts will not happen during the critical thread_block_ticks method call.
+
 ---- RATIONALE ----
 
->> A6: Why did you choose this design?  In what ways is it superior to
->> another design you considered?
+We choose to disable interrupts in trhead instead of calling semaphores in timer (or similar) as 
+it is the design used timer (and the assignment clearly stated that added code should conform 
+with the existing design). Also using a synchronize method such as a semaphore would not work as the
+semaphore would not be released by the running thread until it finished sleeping, as semaphores are 
+not automatically released when a thread is blocked.
 
 			    BATCH SCHEDULING
 			    ================

@@ -147,8 +147,10 @@ thread_tick (void)
 void 
 update_blocked_thread (struct thread *t, void *aux UNUSED)
 {
+	ASSERT(intr_get_level () == INTR_OFF);
 	if (t->status == THREAD_BLOCKED && t->block_for_ticks > -1 && --t->block_for_ticks <= 0)
 	{
+			t->block_for_ticks = -1;
 			thread_unblock (t);
 	}
 }
@@ -246,7 +248,6 @@ thread_block (void)
 void
 thread_block_ticks (int64_t ticks)
 {
-	//printf("Sleeping thread: %s", thread_current()->name);
   enum intr_level old_level;
   
   old_level = intr_disable ();
@@ -268,7 +269,7 @@ thread_unblock (struct thread *t)
 {
   enum intr_level old_level;
 
-  ASSERT (is_thread (t));
+	ASSERT (is_thread (t));
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
