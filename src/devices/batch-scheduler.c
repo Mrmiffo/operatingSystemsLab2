@@ -21,7 +21,7 @@
  *	initialize task with direction and priority
  *	call o
  * */
-typedef struct task_s {
+typedef struct {
 	int direction;
 	int priority;
 } task_t;
@@ -45,10 +45,10 @@ void receiverPriorityTask(void *);
 
 
 void oneTask(task_t task);/*Task requires to use the bus and executes methods below*/
-	void getSlot(task_t task); /* task tries to use slot on the bus */
-	void transferData(task_t task); /* task processes data on the bus either sending or receiving based on the direction*/
-	void leaveSlot(task_t task); /* task release the slot */
-void queue(task_t task);
+void getSlot(task_t task); /* task tries to use slot on the bus */
+void transferData(task_t task); /* task processes data on the bus either sending or receiving based on the direction*/
+void leaveSlot(task_t task); /* task release the slot */
+void queue(task_t task); /*Puts the provided task in the proper queue */
 
 
 /* initializes semaphores */ 
@@ -57,8 +57,8 @@ void init_bus(void){
     lock_init(&queue_lock);
     cond_init(&prio_queue);
     cond_init(&normal_queue);
-    prio_queue_size =0;
-    cur_bus_direction =0;
+    prio_queue_size = 0;
+    cur_bus_direction = 0;
     slots = BUS_CAPACITY;
 }
 
@@ -79,29 +79,21 @@ void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
 		unsigned int i;
 		for (i = 0; i< num_priority_send; i++)
 		{
-			//printf("Created thread: %d\n",thread_create ("Prioritized send", 0,
-        //       senderPriorityTask, NULL));
- thread_create ("Prioritized send", PRI_DEFAULT,
+			thread_create ("Prioritized send", PRI_DEFAULT,
                senderPriorityTask, NULL);
 		}
 		for (i = 0; i< num_priority_receive; i++)
 		{
-			//printf("Created thread: %d\n",thread_create ("Prioritized receive", 0,
-               //receiverPriorityTask, NULL));
-	thread_create ("Prioritized receive", PRI_DEFAULT,
+			thread_create ("Prioritized receive", PRI_DEFAULT,
                receiverPriorityTask, NULL);
 		}
 		for (i = 0; i< num_tasks_send; i++)
 		{
-		//	printf("Created thread: %d\n",thread_create ("Unprioritized send", 0,
-      //         senderTask, NULL));
 			thread_create ("Unprioritized send", PRI_DEFAULT,
                senderTask, NULL);
 		}
 		for (i = 0; i< num_task_receive; i++)
 		{
-			//printf("Created thread: %d\n",thread_create ("Unprioritized receive", 0,
-      //         receiverTask, NULL));
 			thread_create ("Unprioritized receive", PRI_DEFAULT,
                receiverTask, NULL);
 		}		
@@ -143,39 +135,37 @@ void oneTask(task_t task) {
 void getSlot(task_t task) 
 {
 	lock_acquire(&queue_lock);
-		while(1){
-	
-			if (task.priority == NORMAL && prio_queue_size > 0) 
-			{
-				queue(task);
-			}
-			else if (cur_bus_direction == task.direction && slots > 0) 
-			{
-				break;
-			}
-			else if (slots == BUS_CAPACITY) 
-			{
-				cur_bus_direction = task.direction;
-				break;
-			}
-			else 
-			{
-				queue(task);
-			}
+	while(1)
+	{
+		if (task.priority == NORMAL && prio_queue_size > 0) 
+		{
+			queue(task);
 		}
-		slots--;
-		lock_release(&queue_lock);
+		else if (cur_bus_direction == task.direction && slots > 0) 
+		{
+			break;
+		}
+		else if (slots == BUS_CAPACITY) 
+		{
+			cur_bus_direction = task.direction;
+			break;
+		}
+		else 
+		{
+			queue(task);
+		}
+	}
+	slots--;
+	lock_release(&queue_lock);
 }
 
 /* task processes data on the bus send/receive */
 void transferData(task_t task) 
 {
-		//printf("Thread: %d going to sleep...\n", thread_current()->tid);
 		printf("Sleeping...\n");
 		long random = random_ulong();
 		timer_sleep(random%100);
 		printf("Waking...\n");
-		//printf("Thread: %d waking up...\n",thread_current()->tid);
 }
 
 /* task releases the slot */
@@ -198,8 +188,7 @@ void leaveSlot(task_t task)
 	lock_release(&queue_lock);
 }
 
-void
-queue(task_t task)
+void queue(task_t task)
 {
 	if (task.priority == HIGH)
 	{
