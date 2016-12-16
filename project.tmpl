@@ -75,18 +75,19 @@ thread_foreach method.
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
-We turn of interrupts in thread_block_ticks (required by original thread_block method which is 
+We turn off interrupts in thread_block_ticks (required by original thread_block method which is 
 called), upon which only one thread can 'run at the same time'. 
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
-See above. External interrupts will not happen during the critical thread_block_ticks method call.
+See above. External interrupts will not happen during the critical thread_block_ticks method call, 
+nor when the blocked_for_ticks value is decreased.
 
 ---- RATIONALE ----
 
-We choose to disable interrupts in trhead instead of calling semaphores in timer (or similar) as 
-it is the design used timer (and the assignment clearly stated that added code should conform 
+We choose to disable interrupts in thread instead of calling semaphores in timer (or similar) as 
+it is the design used in timer (and the assignment clearly stated that added code should conform 
 with the existing design). Also using a synchronize method such as a semaphore would not work as the
 semaphore would not be released by the running thread until it finished sleeping, as semaphores are 
 not automatically released when a thread is blocked.
@@ -131,7 +132,8 @@ int slots;
 >> C1: How does your solution guarantee that no more that 3 tasks
 >> are using the bus in the same direction?
 
-Through the use of the variable slots, which is accessed atomically.
+Through the use of the variable slots, which is accessed atomically. The variable is decreased when a task enter and 
+increased when it leaves, and starts at the default BUS_CAPACITY value (3).
 
 >> C2: What prevents tasks from opposite directions from using the
 >> bus simultaneously?
@@ -142,12 +144,10 @@ be three available slots on the bus upon the bus direction can be switched.
 >> C3: How does your solution grant priority to high priority tasks over
 >> the waiting tasks in the same direction?
 
-High priority tasks will always attempt to run should the direction of the bus be correct. Otherwise they wait.
+High priority tasks will always attempt to run should the direction of the bus be correct. Otherwise they wait. When a task
+leaves the bus it will prioritize signaling the priority queue.
 
-All normal priority tasks first check whether there are any priority tasks waiting to run - with the prio_queue_size 
-variable - before attempting to run or waiting accordingly. 
-
-This means that a non-priority task will not run before ANY priority task. This is in order to avoid following example.
+This means that a non-priority task will not run before ANY queued priority task. This is in order to avoid examples such as:
 One high priority task enters the bus. A high priority task of the other direction is created and waits.
 If now any number of normal priority tasks are created in the first direction we do not want them to enter the bus before the 
 waiting task. We could theoretically fit in a quick normal priority task on the bus, but since we have no way of knowing their 
@@ -164,8 +164,12 @@ As before, the variable cur_bus_direction prevents this.
 >> C6: Why did you choose this design? Did you consider other design 
 >> alternatives? In what ways is it superior to another design you considered?
 
-We primarily choose this implementation because of its simplicity as compared to its correctness. We had one other solution
+We primarily choose this implementation because of its simplicity in combination to its correctness. We had one other solution
 which looked like an abominable monster. This is, in comparison, easy to read and understand logically.
+There is one potential optimization that could be done. At the moment, a task leaving the bus will signal the task that is first
+in one of the queues regardless of which direction that task has. If one instead were to signal tasks in such a way that if there
+are tasks that can run, they are signaled, you could achieve higher bus utilization at the cost of a bit of computing and complexity.
+Note: using broadcast to wake all the threads in the queue will cause the system to overcrowd with threads and will grind to a halt.
 
 			   SURVEY QUESTIONS (optional)
 			   ===========================
